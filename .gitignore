@@ -1,0 +1,16 @@
+help/
+!help/nodes/
+*.json
+*.py
+chunk_*_list.json
+chunk_*_summaries.json
+final_*_list.json
+final_*_summaries.json
+batch_*_list.json
+batch_*_summaries.json
+all_params.json
+zh_lookup.json
+zh_help_progress.json
+__pycache__/
+*.pyc
+.codely-cli/
