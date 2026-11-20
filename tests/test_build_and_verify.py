@@ -333,3 +333,40 @@ Label {index}:
 
     assert batch_sizes
     assert max(batch_sizes) <= 5
+
+
+def test_build_retranslates_legacy_english_summary_with_context(tmp_path):
+    source = _write_zip(
+        tmp_path / "source.zip",
+        {
+            "sop/rough.txt": """@parameters
+Roughness:
+    Controls surface roughness.
+""",
+        },
+    )
+    legacy = _write_zip(
+        tmp_path / "legacy.zip",
+        {
+            "help/nodes/sop/rough.txt": """@parameters
+Roughness:
+    【<span style="color: #FFD700; font-weight: bold;">Roughness</span>】
+    Controls surface roughness.
+""",
+        },
+    )
+    prompts = []
+
+    def translator(values):
+        prompts.extend(values)
+        return ["粗糙度：控制表面粗糙程度。"]
+
+    build_pack(
+        source,
+        legacy,
+        tmp_path / "out.zip",
+        tmp_path / "work",
+        network_translator=translator,
+    )
+
+    assert prompts == ["Roughness: Controls surface roughness."]

@@ -4,6 +4,7 @@ from zipfile import ZipFile
 from tools.translate_missing import (
     condense_context_summary,
     learn_legacy_pack,
+    needs_context_translation,
     translate_missing_contexts,
     translate_missing_labels,
 )
@@ -185,3 +186,12 @@ def test_context_summary_strips_untranslated_label_and_condenses():
         "Activation",
         "激活：打开和关闭该节点。此节点仅在数值大于零时生效。",
     ) == "激活：打开和关闭该节点。"
+
+
+def test_needs_context_translation_skips_acronyms_but_retries_english_words():
+    assert needs_context_translation("Roughness", "Roughness") is True
+    assert needs_context_translation("`*`geo", "`*`geo") is True
+    assert needs_context_translation("SOP", "SOP") is False
+    assert needs_context_translation("RGB", "RGB") is False
+    assert needs_context_translation("N", "N") is False
+    assert needs_context_translation("Roughness", "粗糙度") is False

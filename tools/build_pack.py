@@ -13,6 +13,7 @@ from tools.network_translation import fallback_summary, translate_labels
 from tools.translate_missing import (
     condense_context_summary,
     learn_legacy_pack,
+    needs_context_translation,
     translate_missing_contexts,
     translate_missing_labels,
 )
@@ -93,7 +94,13 @@ def build_pack(
                         )
                         if (
                             anchor.description
-                            and translation_source == "network"
+                            and (
+                                translation_source == "network"
+                                or needs_context_translation(
+                                    anchor.label,
+                                    _value,
+                                )
+                            )
                         ):
                             context_pairs.append(
                                 (anchor.label, anchor.description)

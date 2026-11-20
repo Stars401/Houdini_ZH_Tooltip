@@ -19,6 +19,27 @@ MARKER_VALUE_RE = re.compile(
     r"(?P<value>.*?)</span>】"
 )
 SUMMARY_END_RE = re.compile(r"(?<=[。！？])")
+RAW_LABELS = {
+    "SOP",
+    "DOP",
+    "POP",
+    "LOP",
+    "CHOP",
+    "COP",
+    "VOP",
+    "TOP",
+    "PDG",
+    "VDB",
+    "SDF",
+    "USD",
+    "RGB",
+    "RGBA",
+    "XYZ",
+    "YX",
+    "ZYX",
+    "BFECC",
+    "XPU",
+}
 
 
 def condense_context_summary(label: str, value: str) -> str:
@@ -36,6 +57,22 @@ def condense_context_summary(label: str, value: str) -> str:
     if len(cleaned) > 120:
         cleaned = cleaned[:117].rstrip() + "..."
     return cleaned
+
+
+def needs_context_translation(label: str, value: str) -> bool:
+    if re.search(r"[\u3400-\u9fff]", value):
+        return False
+    cleaned = label.strip()
+    if cleaned.upper() in RAW_LABELS:
+        return False
+    if re.fullmatch(r"[A-Za-z]{1,2}|[-+]?\d+(?:\.\d+)?", cleaned):
+        return False
+    if re.fullmatch(
+        r"[\s./、,()\-]*(?:[A-Z]{1,6}[\s./、,()\-]*)+",
+        cleaned,
+    ):
+        return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -193,12 +230,6 @@ def translate_missing_contexts(
         if key in seen:
             continue
         seen.add(key)
-        try:
-            _value, source = memory.translate(label, description)
-            if source != "network":
-                continue
-        except TranslationNotFound:
-            pass
         unique.append((label.strip(), description.strip()))
 
     translated = 0
