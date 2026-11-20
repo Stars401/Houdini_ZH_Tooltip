@@ -7,7 +7,10 @@
 - [x] 对比官方 `nodes.zip` 和现有发布包：官方 5,034 文件，现有 3,127 文件，缺 1,907 文件。
 - [x] 定位主要缺口：vop 714、apex 613、dop 150、shop 118、sop 98、obj 46、lop 31、top 26。
 - [x] 用户确认采用方案 1：全覆盖、统一术语、网络翻译加人工规则复核。
-- [ ] 完成设计、测试和生成器。
-- [ ] 生成并验证 5,034 文件发布包。
-- [ ] 备份并安装到 Houdini 用户偏好目录。
+- [x] 完成设计、测试和生成器；`47 passed`。
+- [x] 生成 5,034 文件发布包；58,581 条摘要，结构校验 0 错误。
+- [x] 独立验证发布包；缺失 0、额外 0、原文篡改 0、标记损坏 0。证据：`reports/verification.json`。
+- [x] 备份并安装到 Houdini 用户偏好目录；安装文件 5,034。
+- [x] 备份目录：`C:\Users\29211\Documents\houdini22.0\backups\help_nodes_20261120_232058`。
+- [x] 通过 Houdini MCP `HoudiniPathStore` 验证 overlay 读取 POP、Pyro、APEX、LOP/USD、MaterialX 和 DOP 文件。
 - [ ] 更新版本说明，提交并推送远端。

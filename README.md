@@ -1,80 +1,116 @@
-# Houdini 参数提示中文总结包 / Houdini Chinese Parameter Tooltip Pack
-
-[中文](#中文) | [English](#english)
-
----
+# Houdini 参数提示中文总结包
 
 ## 中文
 
 ### 功能
 
-为 Houdini 22.0 所有节点参数的悬停提示（tooltip）添加一行简短中文总结。
+为 Houdini 22.0.368 的全部官方节点帮助文件添加参数、输入、输出和局部变量中文摘要。
 
-- 📦 覆盖 **3,127 个节点**，共 **39,528 条参数中文总结**
-- 🎨 中文总结以金色加粗 `【中文概括】` 格式显示在英文提示开头
-- ⚡ 无需运行时代码、无需 API 调用，纯文件替换
-- 🔧 不修改 Houdini 原始安装文件
-- ✅ 全部 3,127 个文件已通过自动校验，中文总结与参数一一对应
+- 覆盖 **5,034 个官方帮助文件**
+- 插入 **58,581 条中文摘要**
+- 其中 **58,470 条包含中文文本**
+- 其余 **111 条**保留 `SOP`、`SDF`、`VDB`、`USD`、`BSDF` 和单字母变量等技术记号
+- 覆盖 APEX、POP、Pyro、DOP、Stage/LOP、USD、MaterialX、VOP、COP、TOP 等内部节点
+- 不修改 Houdini 安装目录
+- 不包含运行时插件或后台进程
 
-### 效果预览
+### 效果
 
-鼠标悬停任意参数时，tooltip 开头会显示中文总结：
+参数提示开头会显示金色中文摘要，原文继续保留：
 
+```text
+【用于源设置的体积】
+Provides the sources for the Pyro simulation. This should be a set of named volumes.
 ```
-【创建有符号距离场(SDF)】
-Creates a signed distance field (SDF).
-An SDF stores the distance to the surface in each voxel.
-...
+
+### 安装
+
+手动安装：
+
+1. 解压 `Houdini_ZH_Tooltip_Pack.zip`
+2. 将压缩包内的 `help` 目录合并到用户偏好目录
+   - Windows: `%USERPROFILE%\Documents\houdini22.0\`
+   - Linux: `~/houdini22.0/`
+   - macOS: `~/Library/Preferences/houdini/22.0/`
+3. 重启 Houdini
+
+Windows 推荐使用带备份和回滚的安装脚本：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File tools/install_pack.ps1 `
+  -PackZip Houdini_ZH_Tooltip_Pack.zip `
+  -DestinationRoot "$env:USERPROFILE\Documents\houdini22.0"
 ```
 
-### 安装方法
+脚本会先把现有 `help\nodes` 移动到带时间戳的 `backups` 目录，再安装并校验 5,034 个文件。
 
-1. 下载 [Houdini_ZH_Tooltip_Pack.zip](./Houdini_ZH_Tooltip_Pack.zip) 或 clone 本仓库
-2. 将 `help` 文件夹复制到你的 Houdini 用户偏好目录：
-   - **Windows**: `%USERPROFILE%\Documents\houdini22.0\help\`
-   - **Linux**: `~/houdini22.0/help/`
-   - **macOS**: `~/Library/Preferences/houdini/22.0/help/`
-3. 如果 `help` 文件夹已存在，直接合并覆盖
-4. 重启 Houdini
+### 卸载与恢复
 
-### 卸载方法
+- 没有备份时：删除用户偏好目录中的 `help\nodes`
+- 使用安装脚本时：把 `backups\help_nodes_<时间戳>` 移回 `help\nodes`
 
-删除用户偏好目录下的 `help\nodes\` 文件夹即可恢复原始英文提示。
+### 校验结果
+
+发布包已按 Houdini 22.0.368 官方 `help/nodes.zip` 全量验证：
+
+- 文件集合：5,034/5,034
+- 缺失文件：0
+- 多余文件：0
+- 原文被篡改文件：0
+- 损坏摘要标记文件：0
+- 摘要总数：58,581
+
+详细报告见 `reports/verification.json`。
 
 ### 技术原理
 
-Houdini 的参数 tooltip 由 help 系统通过 `bookish.OverlayStore` 加载。用户偏好目录下的 `help/nodes/` 文件会自动覆盖安装目录中 `nodes.zip` 里的同名文件。本包在原始英文提示基础上，在每个参数描述的第一行插入了中文总结。
+Houdini 通过 help overlay 先查找用户偏好目录，再回退到安装目录的 `nodes.zip`。本包只覆盖用户目录中的同名帮助文件，并在参数块中插入独立的中文摘要行。
+
+`tools/verify_pack.py` 会移除摘要行并与官方英文帮助逐字比较，确保除新增摘要外没有改动原文。
+
+### 覆盖目录
+
+```text
+vop        1212
+sop        1203
+apex        613
+dop         592
+cop         375
+lop         198
+shop        162
+top         158
+cop2        150
+chop        137
+obj          98
+out          57
+其他         79
+```
+
+### 可复现构建
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m pytest -v
+
+python -m tools.build_pack `
+  --source "C:\Program Files\Side Effects Software\Houdini 22.0.368\houdini\help\nodes.zip" `
+  --legacy Houdini_ZH_Tooltip_Pack.zip `
+  --output build\Houdini_ZH_Tooltip_Pack.zip `
+  --cache data\translation_cache.json `
+  --report reports\verification.json
+```
+
+生成器优先复用旧包翻译，再按英文描述上下文补译，最后使用 `data/glossary_zh.json` 统一 Houdini 术语。
 
 ### 兼容性
 
-- Houdini 22.0.x（22.0.368 测试通过）
+- Houdini 22.0.x
+- 已在 Houdini 22.0.368 验证
 - Windows / Linux / macOS
-- 不影响 Houdini 任何功能
 
-### 文件结构
+### 许可
 
-```
-仓库根目录/
-├── README.md                          ← 本文件
-├── Houdini_ZH_Tooltip_Pack.zip        ← 压缩分发包 (6.4 MB)
-├── LICENSE                            ← MIT 开源协议
-├── VERSION.txt                        ← 版本和统计信息
-├── help/
-│   └── nodes/                         ← 3,127 个 .txt 帮助文件
-│       ├── sop/    (946+ files)      ← SOP 节点
-│       ├── vop/    (473+ files)      ← VOP 节点
-│       ├── dop/    (375+ files)      ← DOP 节点
-│       ├── cop/    (357+ files)      ← COP 节点
-│       ├── lop/    (166+ files)      ← LOP 节点
-│       ├── top/    (117+ files)      ← TOP 节点
-│       ├── chop/   (47+ files)       ← CHOP 节点
-│       ├── obj/    (38+ files)       ← OBJ 节点
-│       ├── out/    (37+ files)       ← OUT 节点
-│       ├── shop/   (37+ files)      ← SHOP 节点
-│       ├── cop2/   (19+ files)      ← COP2 节点
-│       ├── manager/ (6 files)       ← 管理器节点
-│       └── ...
-```
+MIT License。中文摘要由旧翻译、上下文翻译和人工术语表共同生成。
 
 ---
 
@@ -82,38 +118,51 @@ Houdini 的参数 tooltip 由 help 系统通过 `bookish.OverlayStore` 加载。
 
 ### Features
 
-Adds a concise Chinese summary line to the tooltip of every parameter in Houdini 22.0.
+Adds Chinese summaries to parameter, input, output, and local-variable tooltips across all Houdini 22.0.368 node help files.
 
-- 📦 Covers **3,127 nodes** with **39,528 Chinese parameter summaries**
-- 🎨 Summaries displayed as gold bold text `【Chinese summary】` at the start of each tooltip
-- ⚡ No runtime code, no API calls — pure file replacement
-- 🔧 Does not modify Houdini's original installation files
-- ✅ All 3,127 files verified — Chinese summaries correctly aligned with parameters
+- **5,034** official help files covered
+- **58,581** summary lines inserted
+- **58,470** summaries contain Chinese text
+- The remaining **111** entries intentionally preserve technical tokens such as `SOP`, `SDF`, `VDB`, `USD`, `BSDF`, and single-letter variables
+- Includes APEX, POP, Pyro, DOP, Stage/LOP, USD, MaterialX, VOP, COP, and TOP content
+- Does not modify the Houdini installation
+- No runtime plugin or background process
 
 ### Installation
 
-1. Download [Houdini_ZH_Tooltip_Pack.zip](./Houdini_ZH_Tooltip_Pack.zip) or clone this repo
-2. Copy the `help` folder to your Houdini user preferences directory:
-   - **Windows**: `%USERPROFILE%\Documents\houdini22.0\help\`
-   - **Linux**: `~/houdini22.0/help/`
-   - **macOS**: `~/Library/Preferences/houdini/22.0/help/`
-3. Merge if `help` folder already exists
-4. Restart Houdini
+1. Extract `Houdini_ZH_Tooltip_Pack.zip`
+2. Merge its `help` directory into your Houdini user preferences directory
+3. Restart Houdini
 
-### Uninstall
+On Windows, use the safe installer:
 
-Delete the `help\nodes\` folder from your user preferences directory.
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File tools/install_pack.ps1 `
+  -PackZip Houdini_ZH_Tooltip_Pack.zip `
+  -DestinationRoot "$env:USERPROFILE\Documents\houdini22.0"
+```
 
-### How It Works
+The installer moves the current `help\nodes` directory into a timestamped backup before copying the new pack.
 
-Houdini's parameter tooltips are loaded from help files via `bookish.OverlayStore`. Files in the user preferences `help/nodes/` directory automatically overlay the `nodes.zip` in the installation directory. This pack inserts a Chinese summary as the first line of each parameter's description block.
+### Verification
 
-### Compatibility
+- File set: 5,034/5,034
+- Missing files: 0
+- Extra files: 0
+- Source-text changes after stripping summaries: 0
+- Invalid summary markers: 0
+- Total summaries: 58,581
 
-- Houdini 22.0.x (tested on 22.0.368)
-- Windows / Linux / macOS
-- Does not affect any Houdini functionality
+See `reports/verification.json` for the machine-readable report.
+
+### Reproducible Build
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m pytest -v
+python -m tools.build_pack --source "<official nodes.zip>" --legacy Houdini_ZH_Tooltip_Pack.zip --output build\Houdini_ZH_Tooltip_Pack.zip --cache data\translation_cache.json
+```
 
 ### License
 
-MIT License — Free to use and distribute. Chinese summaries are AI-generated based on parameter labels and English descriptions.
+MIT License. Chinese summaries are assembled from legacy translations, context-aware translations, and a curated Houdini glossary.

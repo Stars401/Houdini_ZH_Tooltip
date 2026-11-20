@@ -1,25 +1,44 @@
 # Houdini 版本
 Houdini 22.0.368
 
-# 统计信息
-- 节点文件数: 3127
-- 参数总结数: 39528
-- 文件编码: UTF-8
-- 校验结果: 3127/3127 文件全部通过 (0 错误)
+# 发布版本
+v3.0
 
-# 目录结构
+# 统计信息
+- 官方节点帮助文件数: 5034
+- 参数提示摘要数: 58581
+- 含中文文本的摘要数: 58470
+- 保留的技术缩写/变量摘要数: 111
+- 文件编码: UTF-8
+- 结构校验结果: 5034/5034 文件通过 (0 错误)
+- 原文篡改检查: 0 文件
+- 损坏摘要标记: 0 文件
+
+# 主要目录
 help/nodes/
-├── sop/     (946+ files)
-├── vop/     (473+ files)
-├── dop/     (375+ files)
-├── cop/     (357+ files)
-├── lop/     (166+ files)
-├── top/     (117+ files)
-├── chop/    (47+ files)
-├── obj/     (38+ files)
-├── out/     (37+ files)
-├── shop/    (37+ files)
-├── cop2/    (19+ files)
-├── manager/ (6 files)
-├── vex/     (2 files)
-└── obj_state/ (1 file)
+├── vop/          1212 files
+├── sop/          1203 files
+├── apex/          613 files
+├── dop/           592 files
+├── cop/           375 files
+├── lop/           198 files
+├── shop/          162 files
+├── top/           158 files
+├── cop2/          150 files
+├── chop/          137 files
+├── obj/            98 files
+├── out/            57 files
+└── 其他目录         79 files
+
+# 构建工具
+- tools/houdini_help.py
+- tools/translation_memory.py
+- tools/translate_missing.py
+- tools/network_translation.py
+- tools/build_pack.py
+- tools/verify_pack.py
+- tools/install_pack.ps1
+
+# 验证
+- pytest: 47 tests passed
+- 报告: reports/verification.json

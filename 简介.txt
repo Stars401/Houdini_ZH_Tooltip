@@ -1,11 +1,13 @@
 # Houdini 中文参数提示包
 
-为 Houdini 22.0 所有节点参数添加中文总结提示。
+为 Houdini 22.0.368 官方 5,034 个节点帮助文件补全参数、输入、输出和局部变量中文摘要，共 58,581 条。
 
 ## 快速开始
 
 1. 下载仓库
-2. 将 `help` 文件夹复制到 `Documents\houdini22.0\`
+2. 将压缩包内的 `help` 目录合并到 `Documents\houdini22.0\`
 3. 重启 Houdini
+
+Windows 可使用 `tools/install_pack.ps1`，安装前自动备份现有帮助目录。
 
 详见 [README.md](./README.md)
