@@ -18,6 +18,24 @@ MARKER_VALUE_RE = re.compile(
     r"【<span style=\"color: #FFD700; font-weight: bold;\">"
     r"(?P<value>.*?)</span>】"
 )
+SUMMARY_END_RE = re.compile(r"(?<=[。！？])")
+
+
+def condense_context_summary(label: str, value: str) -> str:
+    cleaned = re.sub(r"\s+", " ", value).strip()
+    prefix = re.match(
+        rf"^{re.escape(label.strip())}\s*[:：]\s*",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    if prefix:
+        cleaned = cleaned[prefix.end() :].strip()
+    first_sentence = SUMMARY_END_RE.split(cleaned, maxsplit=1)[0].strip()
+    if len(first_sentence) >= 4:
+        cleaned = first_sentence
+    if len(cleaned) > 120:
+        cleaned = cleaned[:117].rstrip() + "..."
+    return cleaned
 
 
 @dataclass(frozen=True)
@@ -176,9 +194,12 @@ def translate_missing_contexts(
             continue
         seen.add(key)
         try:
-            memory.translate(label, description)
+            _value, source = memory.translate(label, description)
+            if source != "network":
+                continue
         except TranslationNotFound:
-            unique.append((label.strip(), description.strip()))
+            pass
+        unique.append((label.strip(), description.strip()))
 
     translated = 0
     failed_labels: list[str] = []
@@ -208,9 +229,10 @@ def translate_missing_contexts(
             continue
 
         for (label, description), value in zip(batch, result, strict=True):
+            summary = condense_context_summary(label, value)
             memory.add_description(
                 description,
-                value,
+                summary,
                 source="network-context",
             )
             translated += 1

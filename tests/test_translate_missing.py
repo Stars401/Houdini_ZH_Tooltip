@@ -2,6 +2,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from tools.translate_missing import (
+    condense_context_summary,
     learn_legacy_pack,
     translate_missing_contexts,
     translate_missing_labels,
@@ -173,3 +174,14 @@ def test_context_translation_resolves_ambiguous_label(tmp_path):
         == "组：当前操作的几何点组"
     )
     assert cache.exists()
+
+
+def test_context_summary_strips_untranslated_label_and_condenses():
+    assert condense_context_summary(
+        "value",
+        "value：要计算绝对值的输入。后续说明不应重复。",
+    ) == "要计算绝对值的输入。"
+    assert condense_context_summary(
+        "Activation",
+        "激活：打开和关闭该节点。此节点仅在数值大于零时生效。",
+    ) == "激活：打开和关闭该节点。"

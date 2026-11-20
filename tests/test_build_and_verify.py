@@ -261,3 +261,75 @@ def test_build_context_translates_any_new_label_with_description(tmp_path):
     with ZipFile(tmp_path / "out.zip") as archive:
         text = archive.read("help/nodes/dop/pop.txt").decode("utf-8")
     assert "启用：控制节点开关" in text
+
+
+def test_build_retranslates_cached_network_labels_with_context(tmp_path):
+    source = _write_zip(
+        tmp_path / "source.zip",
+        {
+            "lop/material.txt": """@parameters
+Roughness:
+    Controls how rough the surface appears.
+""",
+        },
+    )
+    legacy = _write_zip(tmp_path / "legacy.zip", {})
+    cache = tmp_path / "cache.json"
+    cache.write_text(
+        """{
+  "version": 1,
+  "glossary": {},
+  "entries": {
+    "roughness": {"value": "Roughness", "source": "network"}
+  },
+  "descriptions": {},
+  "ambiguous_labels": []
+}""",
+        encoding="utf-8",
+    )
+    prompts = []
+
+    def translator(values):
+        prompts.extend(values)
+        return ["粗糙度：控制表面看起来有多粗糙。"]
+
+    build_pack(
+        source,
+        legacy,
+        tmp_path / "out.zip",
+        tmp_path / "work",
+        network_translator=translator,
+        cache_path=cache,
+    )
+
+    assert prompts == ["Roughness: Controls how rough the surface appears."]
+    with ZipFile(tmp_path / "out.zip") as archive:
+        text = archive.read("help/nodes/lop/material.txt").decode("utf-8")
+    assert "粗糙度：控制表面看起来有多粗糙。" in text
+
+
+def test_build_uses_small_context_batches(tmp_path):
+    files = {}
+    for index in range(6):
+        files[f"sop/test{index}.txt"] = f"""@parameters
+Label {index}:
+    Unique description number {index}.
+"""
+    source = _write_zip(tmp_path / "source.zip", files)
+    legacy = _write_zip(tmp_path / "legacy.zip", {})
+    batch_sizes = []
+
+    def translator(values):
+        batch_sizes.append(len(values))
+        return [f"翻译 {index}" for index, _value in enumerate(values)]
+
+    build_pack(
+        source,
+        legacy,
+        tmp_path / "out.zip",
+        tmp_path / "work",
+        network_translator=translator,
+    )
+
+    assert batch_sizes
+    assert max(batch_sizes) <= 5

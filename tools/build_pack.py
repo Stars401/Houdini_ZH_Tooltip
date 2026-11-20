@@ -11,6 +11,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from tools.houdini_help import inject_summaries, iter_summary_anchors
 from tools.network_translation import fallback_summary, translate_labels
 from tools.translate_missing import (
+    condense_context_summary,
     learn_legacy_pack,
     translate_missing_contexts,
     translate_missing_labels,
@@ -75,18 +76,28 @@ def build_pack(
     records: list[tuple[str, bytes, str | None, bool]] = []
     unresolved: list[str] = []
     context_pairs: list[tuple[str, str | None]] = []
-    with ZipFile(source_zip) as source:
-        for name in source.namelist():
+    with ZipFile(source_zip) as source_archive:
+        for name in source_archive.namelist():
             if name.endswith("/"):
                 continue
-            raw = source.read(name)
+            raw = source_archive.read(name)
             text: str | None = None
             has_bom = False
             if name.lower().endswith(".txt"):
                 text, has_bom = _decode_help(raw)
                 for anchor in iter_summary_anchors(text):
                     try:
-                        memory.translate(anchor.label, anchor.description)
+                        _value, translation_source = memory.translate(
+                            anchor.label,
+                            anchor.description,
+                        )
+                        if (
+                            anchor.description
+                            and translation_source == "network"
+                        ):
+                            context_pairs.append(
+                                (anchor.label, anchor.description)
+                            )
                     except TranslationNotFound:
                         if anchor.description:
                             context_pairs.append(
@@ -112,6 +123,7 @@ def build_pack(
             context_pairs,
             memory,
             network_translator,
+            batch_size=5,
             cache_path=actual_cache,
         )
         network_translated += context_stats.translated
@@ -127,7 +139,9 @@ def build_pack(
 
     def translate(label: str, description: str | None) -> str:
         try:
-            value, _source = memory.translate(label, description)
+            value, source = memory.translate(label, description)
+            if source in {"network", "network-context"}:
+                value = condense_context_summary(label, value)
             return value
         except TranslationNotFound:
             return fallback_summary(label, description)
