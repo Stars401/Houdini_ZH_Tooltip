@@ -59,3 +59,15 @@ def test_loads_legacy_flat_cache(tmp_path):
     memory = TranslationMemory.load(path)
 
     assert memory.translate("seed", None)[0] == "随机种子"
+
+
+def test_description_specific_translation_wins_over_label_translation():
+    memory = TranslationMemory()
+    memory.add("Mode", "通用模式", source="legacy-pack")
+    memory.add_description("The collision response mode.", "碰撞响应模式", source="manual")
+
+    assert memory.translate("Mode", "The collision response mode.") == (
+        "碰撞响应模式",
+        "manual",
+    )
+    assert memory.translate("Mode", None)[0] == "通用模式"

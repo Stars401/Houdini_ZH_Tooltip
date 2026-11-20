@@ -227,3 +227,37 @@ Mode:
         second = archive.read("help/nodes/sop/second.txt").decode("utf-8")
     assert "模式：First point mode." in first
     assert "模式：Second point mode." in second
+
+
+def test_build_context_translates_any_new_label_with_description(tmp_path):
+    source = _write_zip(
+        tmp_path / "source.zip",
+        {
+            "dop/pop.txt": """parameters id="common">>
+    Activation:
+        #channels: /activate
+
+        Turns this node on and off.
+""",
+        },
+    )
+    legacy = _write_zip(tmp_path / "legacy.zip", {})
+    prompts = []
+
+    def translator(values):
+        prompts.extend(values)
+        return ["启用：控制节点开关"]
+
+    stats = build_pack(
+        source,
+        legacy,
+        tmp_path / "out.zip",
+        tmp_path / "work",
+        network_translator=translator,
+    )
+
+    assert stats.network_translated == 1
+    assert prompts == ["Activation: Turns this node on and off."]
+    with ZipFile(tmp_path / "out.zip") as archive:
+        text = archive.read("help/nodes/dop/pop.txt").decode("utf-8")
+    assert "启用：控制节点开关" in text

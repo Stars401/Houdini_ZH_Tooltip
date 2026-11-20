@@ -18,7 +18,6 @@ from tools.translate_missing import (
 from tools.translation_memory import (
     TranslationMemory,
     TranslationNotFound,
-    normalize_text,
 )
 from tools.verify_pack import verify_pack
 
@@ -75,7 +74,7 @@ def build_pack(
 
     records: list[tuple[str, bytes, str | None, bool]] = []
     unresolved: list[str] = []
-    ambiguous_contexts: list[tuple[str, str | None]] = []
+    context_pairs: list[tuple[str, str | None]] = []
     with ZipFile(source_zip) as source:
         for name in source.namelist():
             if name.endswith("/"):
@@ -89,8 +88,8 @@ def build_pack(
                     try:
                         memory.translate(anchor.label, anchor.description)
                     except TranslationNotFound:
-                        if normalize_text(anchor.label) in memory.ambiguous_labels:
-                            ambiguous_contexts.append(
+                        if anchor.description:
+                            context_pairs.append(
                                 (anchor.label, anchor.description)
                             )
                         else:
@@ -108,9 +107,9 @@ def build_pack(
         )
         network_translated += label_stats.translated
         failed_translations += label_stats.failed
-    if ambiguous_contexts:
+    if context_pairs:
         context_stats = translate_missing_contexts(
-            ambiguous_contexts,
+            context_pairs,
             memory,
             network_translator,
             cache_path=actual_cache,

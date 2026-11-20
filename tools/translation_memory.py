@@ -66,21 +66,16 @@ class TranslationMemory:
         label_key = normalize_text(label)
         if label_key in self.glossary:
             return (self.glossary[label_key], "glossary")
-        if label_key in self.ambiguous_labels:
-            if description:
-                description_key = _description_key(description)
-                if description_key in self.description_entries:
-                    entry = self.description_entries[description_key]
-                    return (entry.value, entry.source)
-            raise TranslationNotFound(label)
-        if label_key in self.entries:
-            entry = self.entries[label_key]
-            return (entry.value, entry.source)
         if description:
             description_key = _description_key(description)
             if description_key in self.description_entries:
                 entry = self.description_entries[description_key]
                 return (entry.value, entry.source)
+        if label_key in self.ambiguous_labels:
+            raise TranslationNotFound(label)
+        if label_key in self.entries:
+            entry = self.entries[label_key]
+            return (entry.value, entry.source)
         raise TranslationNotFound(label)
 
     def save(self, path: Path) -> None:
