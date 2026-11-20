@@ -72,6 +72,9 @@ class TranslationMemory:
                 entry = self.description_entries[description_key]
                 return (entry.value, entry.source)
         if label_key in self.ambiguous_labels:
+            entry = self.entries.get(label_key)
+            if entry is not None and entry.source == "network":
+                return (entry.value, entry.source)
             raise TranslationNotFound(label)
         if label_key in self.entries:
             entry = self.entries[label_key]

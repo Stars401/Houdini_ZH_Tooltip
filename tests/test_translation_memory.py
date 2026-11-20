@@ -86,3 +86,11 @@ def test_save_falls_back_when_atomic_replace_is_locked(tmp_path, monkeypatch):
     memory.save(path)
 
     assert TranslationMemory.load(path).translate("Seed", None)[0] == "随机种子"
+
+
+def test_ambiguous_label_uses_network_translation_as_last_resort():
+    memory = TranslationMemory()
+    memory.mark_ambiguous("Roughness")
+    memory.add("Roughness", "粗糙度", source="network")
+
+    assert memory.translate("Roughness", None) == ("粗糙度", "network")
