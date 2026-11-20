@@ -2,6 +2,8 @@ help/
 !help/nodes/
 *.json
 *.py
+!tools/*.py
+!tests/*.py
 chunk_*_list.json
 chunk_*_summaries.json
 final_*_list.json
@@ -13,4 +15,5 @@ zh_lookup.json
 zh_help_progress.json
 __pycache__/
 *.pyc
+.pytest_cache/
 .codely-cli/
