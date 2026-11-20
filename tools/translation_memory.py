@@ -98,7 +98,11 @@ class TranslationMemory:
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        temporary.replace(path)
+        try:
+            temporary.replace(path)
+        except PermissionError:
+            path.write_bytes(temporary.read_bytes())
+            temporary.unlink(missing_ok=True)
 
     @classmethod
     def load(cls, path: Path) -> "TranslationMemory":

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -71,3 +72,17 @@ def test_description_specific_translation_wins_over_label_translation():
         "manual",
     )
     assert memory.translate("Mode", None)[0] == "通用模式"
+
+
+def test_save_falls_back_when_atomic_replace_is_locked(tmp_path, monkeypatch):
+    path = tmp_path / "cache.json"
+    memory = TranslationMemory()
+    memory.add("Seed", "随机种子", source="manual")
+
+    def locked_replace(_self, _target):
+        raise PermissionError("locked")
+
+    monkeypatch.setattr(Path, "replace", locked_replace)
+    memory.save(path)
+
+    assert TranslationMemory.load(path).translate("Seed", None)[0] == "随机种子"
