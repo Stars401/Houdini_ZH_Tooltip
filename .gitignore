@@ -1,6 +1,8 @@
 help/
 !help/nodes/
 *.json
+!data/*.json
+!reports/*.json
 *.py
 !tools/*.py
 !tests/*.py
