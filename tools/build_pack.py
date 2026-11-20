@@ -10,8 +10,16 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from tools.houdini_help import inject_summaries, iter_summary_anchors
 from tools.network_translation import fallback_summary, translate_labels
-from tools.translate_missing import learn_legacy_pack, translate_missing_labels
-from tools.translation_memory import TranslationMemory, TranslationNotFound
+from tools.translate_missing import (
+    learn_legacy_pack,
+    translate_missing_contexts,
+    translate_missing_labels,
+)
+from tools.translation_memory import (
+    TranslationMemory,
+    TranslationNotFound,
+    normalize_text,
+)
 from tools.verify_pack import verify_pack
 
 UTF8_BOM = b"\xef\xbb\xbf"
@@ -61,11 +69,13 @@ def build_pack(
             memory.glossary.setdefault(key, value)
         memory.entries.update(cached.entries)
         memory.description_entries.update(cached.description_entries)
+        memory.ambiguous_labels.update(cached.ambiguous_labels)
 
     legacy_learned = learn_legacy_pack(legacy_zip, memory)
 
     records: list[tuple[str, bytes, str | None, bool]] = []
     unresolved: list[str] = []
+    ambiguous_contexts: list[tuple[str, str | None]] = []
     with ZipFile(source_zip) as source:
         for name in source.namelist():
             if name.endswith("/"):
@@ -79,20 +89,34 @@ def build_pack(
                     try:
                         memory.translate(anchor.label, anchor.description)
                     except TranslationNotFound:
-                        unresolved.append(anchor.label)
+                        if normalize_text(anchor.label) in memory.ambiguous_labels:
+                            ambiguous_contexts.append(
+                                (anchor.label, anchor.description)
+                            )
+                        else:
+                            unresolved.append(anchor.label)
             records.append((name, raw, text, has_bom))
 
     network_translated = 0
     failed_translations = 0
     if unresolved:
-        stats = translate_missing_labels(
+        label_stats = translate_missing_labels(
             unresolved,
             memory,
             network_translator,
             cache_path=actual_cache,
         )
-        network_translated = stats.translated
-        failed_translations = stats.failed
+        network_translated += label_stats.translated
+        failed_translations += label_stats.failed
+    if ambiguous_contexts:
+        context_stats = translate_missing_contexts(
+            ambiguous_contexts,
+            memory,
+            network_translator,
+            cache_path=actual_cache,
+        )
+        network_translated += context_stats.translated
+        failed_translations += context_stats.failed
 
     output_zip.parent.mkdir(parents=True, exist_ok=True)
     work_dir.mkdir(parents=True, exist_ok=True)

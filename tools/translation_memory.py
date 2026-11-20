@@ -36,6 +36,7 @@ class TranslationMemory:
         }
         self.entries: dict[str, TranslationEntry] = {}
         self.description_entries: dict[str, TranslationEntry] = {}
+        self.ambiguous_labels: set[str] = set()
 
     def add(self, label: str, value: str, source: str) -> None:
         key = normalize_text(label)
@@ -52,6 +53,11 @@ class TranslationMemory:
                 source=source,
             )
 
+    def mark_ambiguous(self, label: str) -> None:
+        key = normalize_text(label)
+        if key:
+            self.ambiguous_labels.add(key)
+
     def translate(
         self,
         label: str,
@@ -60,6 +66,13 @@ class TranslationMemory:
         label_key = normalize_text(label)
         if label_key in self.glossary:
             return (self.glossary[label_key], "glossary")
+        if label_key in self.ambiguous_labels:
+            if description:
+                description_key = _description_key(description)
+                if description_key in self.description_entries:
+                    entry = self.description_entries[description_key]
+                    return (entry.value, entry.source)
+            raise TranslationNotFound(label)
         if label_key in self.entries:
             entry = self.entries[label_key]
             return (entry.value, entry.source)
@@ -83,6 +96,7 @@ class TranslationMemory:
                 key: {"value": entry.value, "source": entry.source}
                 for key, entry in sorted(self.description_entries.items())
             },
+            "ambiguous_labels": sorted(self.ambiguous_labels),
         }
         temporary = path.with_suffix(path.suffix + ".tmp")
         temporary.write_text(
@@ -112,4 +126,5 @@ class TranslationMemory:
                 value=raw_entry["value"],
                 source=raw_entry.get("source", "cache"),
             )
+        memory.ambiguous_labels.update(payload.get("ambiguous_labels", []))
         return memory

@@ -18,4 +18,5 @@ zh_help_progress.json
 __pycache__/
 *.pyc
 .pytest_cache/
+build/
 .codely-cli/

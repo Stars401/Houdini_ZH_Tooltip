@@ -59,6 +59,13 @@
     "VEX": "VEX",
     "VOP": "VOP",
     "volume": "体积",
-    "wrangle": "Wrangle"
+    "wrangle": "Wrangle",
+    "Sourcing": "源设置",
+    "Sourcing (Post-Solve)": "解算后源设置",
+    "Volumes for Sourcing": "用于源设置的体积",
+    "Rest Source Model": "静止源模型",
+    "Keep on Training Device": "保留在训练设备上",
+    "Indirect Training Samples": "间接训练样本",
+    "Strict Model Hierarchy": "严格模型层级"
   }
 }

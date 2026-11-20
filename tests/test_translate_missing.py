@@ -3,9 +3,12 @@ from zipfile import ZipFile
 
 from tools.translate_missing import (
     learn_legacy_pack,
+    translate_missing_contexts,
     translate_missing_labels,
 )
 from tools.translation_memory import TranslationMemory
+from tools.translation_memory import TranslationNotFound
+import pytest
 
 
 MARKER = '【<span style="color: #FFD700; font-weight: bold;">控制密度</span>】'
@@ -117,3 +120,56 @@ def test_cache_is_saved_after_each_successful_batch(tmp_path):
     assert stats.translated == 2
     assert cache.exists()
     assert TranslationMemory.load(cache).translate("Beta", None)[0] == "译:Beta"
+
+
+def test_conflicting_labels_require_description_context(tmp_path):
+    first = """@parameters
+Group:
+    #id: group
+    【<span style="color: #FFD700; font-weight: bold;">第一个组</span>】
+    First group description.
+"""
+    second = """@parameters
+Group:
+    #id: group
+    【<span style="color: #FFD700; font-weight: bold;">第二个组</span>】
+    Second group description.
+"""
+    pack = tmp_path / "legacy.zip"
+    with ZipFile(pack, "w") as archive:
+        archive.writestr("help/nodes/sop/first.txt", first)
+        archive.writestr("help/nodes/sop/second.txt", second)
+    memory = TranslationMemory()
+
+    learn_legacy_pack(pack, memory)
+
+    with pytest.raises(TranslationNotFound):
+        memory.translate("Group", None)
+    assert memory.translate("Group", "First group description.")[0] == "第一个组"
+    assert memory.translate("Group", "Second group description.")[0] == "第二个组"
+
+
+def test_context_translation_resolves_ambiguous_label(tmp_path):
+    memory = TranslationMemory()
+    memory.mark_ambiguous("Group")
+    cache = tmp_path / "cache.json"
+    seen = []
+
+    def translator(values):
+        seen.extend(values)
+        return ["组：当前操作的几何点组"]
+
+    stats = translate_missing_contexts(
+        [("Group", "The point group to operate on.")],
+        memory,
+        translator,
+        cache_path=cache,
+    )
+
+    assert stats.translated == 1
+    assert seen == ["Group: The point group to operate on."]
+    assert (
+        memory.translate("Group", "The point group to operate on.")[0]
+        == "组：当前操作的几何点组"
+    )
+    assert cache.exists()

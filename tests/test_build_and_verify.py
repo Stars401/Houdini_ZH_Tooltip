@@ -175,3 +175,55 @@ def test_verify_cli_help_is_available():
 
     assert result.returncode == 0
     assert "--pack" in result.stdout
+
+
+def test_build_uses_context_translation_for_ambiguous_labels(tmp_path):
+    source = _write_zip(
+        tmp_path / "source.zip",
+        {
+            "sop/first.txt": """@parameters
+Mode:
+    #id: mode
+    First point mode.
+""",
+            "sop/second.txt": """@parameters
+Mode:
+    #id: mode
+    Second point mode.
+""",
+        },
+    )
+    legacy = _write_zip(
+        tmp_path / "legacy.zip",
+        {
+            "help/nodes/sop/first.txt": """@parameters
+Mode:
+    #id: mode
+    【<span style="color: #FFD700; font-weight: bold;">第一个模式</span>】
+    Legacy first description.
+""",
+            "help/nodes/sop/second.txt": """@parameters
+Mode:
+    #id: mode
+    【<span style="color: #FFD700; font-weight: bold;">第二个模式</span>】
+    Legacy second description.
+""",
+        },
+    )
+
+    stats = build_pack(
+        source,
+        legacy,
+        tmp_path / "out.zip",
+        tmp_path / "work",
+        network_translator=lambda values: [
+            value.replace("Mode: ", "模式：") for value in values
+        ],
+    )
+
+    assert stats.network_translated == 2
+    with ZipFile(tmp_path / "out.zip") as archive:
+        first = archive.read("help/nodes/sop/first.txt").decode("utf-8")
+        second = archive.read("help/nodes/sop/second.txt").decode("utf-8")
+    assert "模式：First point mode." in first
+    assert "模式：Second point mode." in second
