@@ -3,6 +3,9 @@ help/
 *.json
 !data/*.json
 !reports/*.json
+data/translation_cache_v2.json
+data/*.tmp
+reports/verification-*.json
 *.py
 !tools/*.py
 !tests/*.py
