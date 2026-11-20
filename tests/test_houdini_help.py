@@ -120,3 +120,81 @@ def test_preserves_crlf_and_missing_final_newline():
     assert count == 1
     assert "\r\n" in output
     assert strip_summaries(output) == source
+
+
+def test_injects_apex_inputs_and_outputs():
+    source = """#context: apex
+
+@inputs
+
+::value:
+    #type: Float
+    The input value.
+
+@outputs
+
+::result:
+    #type: Float
+    The absolute value.
+
+@related
+- [Node:apex/Abs]
+"""
+
+    output, count = inject_summaries(
+        source,
+        lambda label, _description: {
+            "value": "输入值",
+            "result": "结果",
+        }[label],
+    )
+
+    assert count == 2
+    assert "输入值" in output
+    assert "结果" in output
+    assert strip_summaries(output) == source
+
+
+def test_injects_legacy_parameters_blocks():
+    source = """parameters id="common">>
+    Seed:
+        #channels: /seed
+
+        Seed value.
+
+parameters id="other">>
+    Amount:
+        Amount value.
+"""
+
+    output, count = inject_summaries(
+        source,
+        lambda label, _description: {
+            "Seed": "随机种子",
+            "Amount": "数量",
+        }[label],
+    )
+
+    assert count == 2
+    assert "随机种子" in output
+    assert "数量" in output
+    assert strip_summaries(output) == source
+
+
+def test_injects_locals_section():
+    source = """@locals
+    N:
+        Current chunk.
+
+@related
+- [Node:chop/band]
+"""
+
+    output, count = inject_summaries(
+        source,
+        lambda _label, _description: "当前块",
+    )
+
+    assert count == 1
+    assert "当前块" in output
+    assert strip_summaries(output) == source

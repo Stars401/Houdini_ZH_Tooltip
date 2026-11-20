@@ -11,7 +11,7 @@ MARKER_LINE_RE = re.compile(
     r".*?</span>】\s*$"
 )
 LABEL_RE = re.compile(
-    r"^(?P<indent>[ \t]*)(?P<label>[^:=\[\]<#\s][^:]{0,159}):[ \t]*"
+    r"^(?P<indent>[ \t]*)(?P<label>::[^:]{1,159}|[^:=\[\]<#\s][^:]{0,159}):[ \t]*"
     r"(?P<newline>\r?\n)?$"
 )
 SECTION_LABELS = {
@@ -29,6 +29,16 @@ DIRECTIVE_PREFIXES = (
     "#kagroup:",
     "#contentfrom:",
 )
+SECTION_HEADERS = {
+    "@parameters",
+    "@inputs",
+    "@outputs",
+    "@input",
+    "@output",
+    "@locals",
+    "@attributes",
+    "@top_attributes",
+}
 
 
 @dataclass(frozen=True)
@@ -57,25 +67,25 @@ def _newline_for(text: str) -> str:
     return "\r\n" if "\r\n" in text else "\n"
 
 
-def _parameter_range(lines: list[str]) -> tuple[int, int]:
-    start = next(
-        (
-            index + 1
-            for index, line in enumerate(lines)
-            if _line_text(line).strip() == "@parameters"
-        ),
-        None,
+def _is_section_start(line: str) -> bool:
+    stripped = _line_text(line).strip()
+    if stripped.endswith(":"):
+        stripped = stripped[:-1].rstrip()
+    return stripped in SECTION_HEADERS or (
+        stripped.startswith('parameters id="') and stripped.endswith(">>")
     )
-    if start is None:
-        return (0, 0)
 
-    end = len(lines)
-    for index in range(start, len(lines)):
-        stripped = _line_text(lines[index]).strip()
-        if stripped.startswith("@") and stripped != "@parameters":
-            end = index
-            break
-    return (start, end)
+
+def _section_ranges(lines: list[str]) -> list[tuple[int, int]]:
+    starts = [
+        index
+        for index, line in enumerate(lines)
+        if _is_section_start(line)
+    ]
+    return [
+        (start + 1, starts[position + 1] if position + 1 < len(starts) else len(lines))
+        for position, start in enumerate(starts)
+    ]
 
 
 def _block_end(lines: list[str], start: int, end: int, indent: int) -> int:
@@ -140,7 +150,8 @@ def _anchor_for_label(
     if match is None:
         return None
 
-    label = match.group("label").strip()
+    raw_label = match.group("label").strip()
+    label = raw_label[2:] if raw_label.startswith("::") else raw_label
     if label.upper() in SECTION_LABELS:
         return None
 
@@ -176,14 +187,11 @@ def _anchor_for_label(
 
 def iter_summary_anchors(text: str) -> Iterator[SummaryAnchor]:
     lines = text.splitlines(keepends=True)
-    start, end = _parameter_range(lines)
-    if start == end:
-        return
-
-    for index in range(start, end):
-        anchor = _anchor_for_label(lines, index, end)
-        if anchor is not None:
-            yield anchor
+    for start, end in _section_ranges(lines):
+        for index in range(start, end):
+            anchor = _anchor_for_label(lines, index, end)
+            if anchor is not None:
+                yield anchor
 
 
 def inject_summaries(
