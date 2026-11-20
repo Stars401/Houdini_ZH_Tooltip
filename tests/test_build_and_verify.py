@@ -407,3 +407,53 @@ Roughness:
     )
 
     assert prompts == ["Roughness"]
+
+
+def test_build_cache_overrides_legacy_raw_label(tmp_path):
+    source = _write_zip(
+        tmp_path / "source.zip",
+        {
+            "cop/rough.txt": """@parameters
+Roughness:
+    #contentfrom: /nodes/cop/source#rough
+""",
+        },
+    )
+    legacy = _write_zip(
+        tmp_path / "legacy.zip",
+        {
+            "help/nodes/cop/rough.txt": """@parameters
+Roughness:
+    #contentfrom: /nodes/cop/source#rough
+    【<span style="color: #FFD700; font-weight: bold;">Roughness</span>】
+""",
+        },
+    )
+    cache = tmp_path / "cache.json"
+    cache.write_text(
+        """{
+  "version": 1,
+  "glossary": {},
+  "entries": {
+    "roughness": {"value": "粗糙度", "source": "network"}
+  },
+  "descriptions": {},
+  "ambiguous_labels": []
+}""",
+        encoding="utf-8",
+    )
+
+    build_pack(
+        source,
+        legacy,
+        tmp_path / "out.zip",
+        tmp_path / "work",
+        network_translator=lambda _values: (_ for _ in ()).throw(
+            AssertionError("network should not be called")
+        ),
+        cache_path=cache,
+    )
+
+    with ZipFile(tmp_path / "out.zip") as archive:
+        text = archive.read("help/nodes/cop/rough.txt").decode("utf-8")
+    assert "粗糙度" in text

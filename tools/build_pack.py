@@ -64,6 +64,7 @@ def build_pack(
     actual_cache = cache_path or work_dir / "translation_cache.json"
 
     memory = TranslationMemory(glossary=glossary)
+    legacy_learned = learn_legacy_pack(legacy_zip, memory)
     if actual_cache.exists():
         cached = TranslationMemory.load(actual_cache)
         for key, value in cached.glossary.items():
@@ -71,8 +72,6 @@ def build_pack(
         memory.entries.update(cached.entries)
         memory.description_entries.update(cached.description_entries)
         memory.ambiguous_labels.update(cached.ambiguous_labels)
-
-    legacy_learned = learn_legacy_pack(legacy_zip, memory)
 
     records: list[tuple[str, bytes, str | None, bool]] = []
     unresolved: list[str] = []
