@@ -13,4 +13,4 @@
 - [x] 备份并安装到 Houdini 用户偏好目录；安装文件 5,034。
 - [x] 备份目录：`C:\Users\29211\Documents\houdini22.0\backups\help_nodes_20261120_232058`。
 - [x] 通过 Houdini MCP `HoudiniPathStore` 验证 overlay 读取 POP、Pyro、APEX、LOP/USD、MaterialX 和 DOP 文件。
-- [ ] 更新版本说明，提交并推送远端。
+- [x] 更新版本说明并推送 `origin/main`；发布基线提交 `885c616`。
