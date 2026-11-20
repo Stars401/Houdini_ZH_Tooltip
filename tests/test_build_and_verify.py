@@ -370,3 +370,40 @@ Roughness:
     )
 
     assert prompts == ["Roughness: Controls surface roughness."]
+
+
+def test_build_force_translates_english_label_without_description(tmp_path):
+    source = _write_zip(
+        tmp_path / "source.zip",
+        {
+            "cop/rough.txt": """@parameters
+Roughness:
+    #contentfrom: /nodes/cop/source#rough
+""",
+        },
+    )
+    legacy = _write_zip(
+        tmp_path / "legacy.zip",
+        {
+            "help/nodes/cop/rough.txt": """@parameters
+Roughness:
+    #contentfrom: /nodes/cop/source#rough
+    【<span style="color: #FFD700; font-weight: bold;">Roughness</span>】
+""",
+        },
+    )
+    prompts = []
+
+    def translator(values):
+        prompts.extend(values)
+        return ["粗糙度" for _ in values]
+
+    build_pack(
+        source,
+        legacy,
+        tmp_path / "out.zip",
+        tmp_path / "work",
+        network_translator=translator,
+    )
+
+    assert prompts == ["Roughness"]

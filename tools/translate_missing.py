@@ -154,6 +154,7 @@ def translate_missing_labels(
     translator: Callable[[list[str]], list[str]],
     batch_size: int = 60,
     cache_path: Path | None = None,
+    force: bool = False,
 ) -> TranslationStats:
     if batch_size < 1:
         raise ValueError("batch_size must be at least 1")
@@ -166,10 +167,13 @@ def translate_missing_labels(
         if not cleaned or key in seen:
             continue
         seen.add(key)
-        try:
-            memory.translate(cleaned, None)
-        except TranslationNotFound:
-            unique.append(cleaned)
+        if not force:
+            try:
+                memory.translate(cleaned, None)
+                continue
+            except TranslationNotFound:
+                pass
+        unique.append(cleaned)
 
     translated = 0
     failed_labels: list[str] = []

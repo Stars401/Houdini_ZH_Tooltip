@@ -59,6 +59,21 @@ def test_network_batches_and_deduplicates_labels():
     assert memory.translate("Alpha", None)[0] == "译:Alpha"
 
 
+def test_forced_label_translation_replaces_raw_existing_value():
+    memory = TranslationMemory()
+    memory.add("Roughness", "Roughness", source="legacy-pack")
+
+    stats = translate_missing_labels(
+        ["Roughness"],
+        memory,
+        translator=lambda values: ["粗糙度" for _ in values],
+        force=True,
+    )
+
+    assert stats.translated == 1
+    assert memory.translate("Roughness", None) == ("粗糙度", "network")
+
+
 def test_network_failure_retries_once_then_continues():
     attempts = {"Alpha": 0, "Beta": 0}
 

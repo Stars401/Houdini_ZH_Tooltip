@@ -76,6 +76,7 @@ def build_pack(
 
     records: list[tuple[str, bytes, str | None, bool]] = []
     unresolved: list[str] = []
+    forced_labels: list[str] = []
     context_pairs: list[tuple[str, str | None]] = []
     with ZipFile(source_zip) as source_archive:
         for name in source_archive.namelist():
@@ -105,6 +106,14 @@ def build_pack(
                             context_pairs.append(
                                 (anchor.label, anchor.description)
                             )
+                        elif (
+                            not anchor.description
+                            and needs_context_translation(
+                                anchor.label,
+                                _value,
+                            )
+                        ):
+                            forced_labels.append(anchor.label)
                     except TranslationNotFound:
                         if anchor.description:
                             context_pairs.append(
@@ -125,6 +134,16 @@ def build_pack(
         )
         network_translated += label_stats.translated
         failed_translations += label_stats.failed
+    if forced_labels:
+        forced_stats = translate_missing_labels(
+            forced_labels,
+            memory,
+            network_translator,
+            cache_path=actual_cache,
+            force=True,
+        )
+        network_translated += forced_stats.translated
+        failed_translations += forced_stats.failed
     if context_pairs:
         context_stats = translate_missing_contexts(
             context_pairs,
