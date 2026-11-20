@@ -1,6 +1,9 @@
 from pathlib import Path
+import subprocess
+import sys
 from zipfile import ZipFile
 
+import tools.build_pack as build_module
 from tools.build_pack import build_pack
 from tools.verify_pack import verify_pack
 
@@ -99,3 +102,76 @@ def test_verify_detects_missing_file(tmp_path):
 
     assert not report.ok
     assert report.missing_files == 1
+
+
+def test_build_uses_default_network_translator(tmp_path, monkeypatch):
+    source, legacy = _fixtures(tmp_path)
+    monkeypatch.setattr(
+        build_module,
+        "translate_labels",
+        lambda values: ["低密度" for _ in values],
+    )
+
+    stats = build_pack(
+        source,
+        legacy,
+        tmp_path / "out.zip",
+        tmp_path / "work",
+    )
+
+    assert stats.network_translated >= 1
+
+
+def test_build_uses_local_fallback_after_translation_failure(tmp_path):
+    source = _write_zip(
+        tmp_path / "source.zip",
+        {
+            "sop/local.txt": """@parameters
+N:
+    Current chunk.
+""",
+        },
+    )
+    legacy = _write_zip(tmp_path / "legacy.zip", {})
+
+    def offline(_values):
+        raise OSError("offline")
+
+    output = tmp_path / "out.zip"
+    stats = build_pack(
+        source,
+        legacy,
+        output,
+        tmp_path / "work",
+        network_translator=offline,
+    )
+
+    assert stats.failed_translations == 1
+    with ZipFile(output) as archive:
+        text = archive.read("help/nodes/sop/local.txt").decode("utf-8")
+    assert "数量" in text
+    assert verify_pack(source, output).ok
+
+
+def test_build_cli_help_is_available():
+    result = subprocess.run(
+        [sys.executable, "-m", "tools.build_pack", "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "--source" in result.stdout
+
+
+def test_verify_cli_help_is_available():
+    result = subprocess.run(
+        [sys.executable, "-m", "tools.verify_pack", "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "--pack" in result.stdout

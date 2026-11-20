@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import argparse
+from dataclasses import asdict, dataclass
+import json
 from pathlib import Path
+import sys
 from zipfile import BadZipFile, ZipFile
 
 from tools.houdini_help import MARKER_PREFIX, MARKER_SUFFIX, strip_summaries
@@ -113,3 +116,31 @@ def verify_pack(source_zip: Path, pack_zip: Path) -> VerificationReport:
         summaries=summaries,
         errors=tuple(errors),
     )
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Verify a Houdini Chinese tooltip pack against official help.",
+    )
+    parser.add_argument("--source", required=True, type=Path)
+    parser.add_argument("--pack", required=True, type=Path)
+    parser.add_argument("--report", type=Path)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    report = verify_pack(args.source, args.pack)
+    payload = {**asdict(report), "ok": report.ok}
+    if args.report:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0 if report.ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

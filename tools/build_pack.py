@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import argparse
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
+import sys
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from tools.houdini_help import inject_summaries, iter_summary_anchors
+from tools.network_translation import fallback_summary, translate_labels
 from tools.translate_missing import learn_legacy_pack, translate_missing_labels
 from tools.translation_memory import TranslationMemory, TranslationNotFound
+from tools.verify_pack import verify_pack
 
 UTF8_BOM = b"\xef\xbb\xbf"
 
@@ -38,20 +42,12 @@ def _load_glossary(path: Path) -> dict[str, str]:
     return payload.get("terms", payload)
 
 
-def _fallback_summary(label: str, description: str | None) -> str:
-    if label.strip():
-        return label.strip()
-    if description:
-        return description.strip()[:40]
-    return "参数"
-
-
 def build_pack(
     source_zip: Path,
     legacy_zip: Path,
     output_zip: Path,
     work_dir: Path,
-    network_translator: Callable[[list[str]], list[str]] | None = None,
+    network_translator: Callable[[list[str]], list[str]] = translate_labels,
     cache_path: Path | None = None,
     glossary_path: Path | None = None,
 ) -> BuildStats:
@@ -88,7 +84,7 @@ def build_pack(
 
     network_translated = 0
     failed_translations = 0
-    if unresolved and network_translator is not None:
+    if unresolved:
         stats = translate_missing_labels(
             unresolved,
             memory,
@@ -111,7 +107,7 @@ def build_pack(
             value, _source = memory.translate(label, description)
             return value
         except TranslationNotFound:
-            return _fallback_summary(label, description)
+            return fallback_summary(label, description)
 
     try:
         with ZipFile(temporary_zip, "w", compression=ZIP_DEFLATED) as output:
@@ -136,3 +132,54 @@ def build_pack(
         network_translated=network_translated,
         failed_translations=failed_translations,
     )
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Build and verify the complete Houdini Chinese tooltip pack.",
+    )
+    parser.add_argument("--source", required=True, type=Path)
+    parser.add_argument("--legacy", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--work-dir", type=Path, default=Path("build/work"))
+    parser.add_argument("--cache", type=Path)
+    parser.add_argument(
+        "--glossary",
+        type=Path,
+        default=Path("data/glossary_zh.json"),
+    )
+    parser.add_argument("--report", type=Path)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
+    stats = build_pack(
+        args.source,
+        args.legacy,
+        args.output,
+        args.work_dir,
+        network_translator=translate_labels,
+        cache_path=args.cache,
+        glossary_path=args.glossary,
+    )
+    report = verify_pack(args.source, args.output)
+    payload = {
+        "build": asdict(stats),
+        "verification": {
+            **asdict(report),
+            "ok": report.ok,
+        },
+    }
+    if args.report:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0 if report.ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
