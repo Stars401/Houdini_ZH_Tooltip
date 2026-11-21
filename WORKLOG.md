@@ -14,3 +14,13 @@
 - [x] 备份目录：`C:\Users\29211\Documents\houdini22.0\backups\help_nodes_20261120_232058`。
 - [x] 通过 Houdini MCP `HoudiniPathStore` 验证 overlay 读取 POP、Pyro、APEX、LOP/USD、MaterialX 和 DOP 文件。
 - [x] 更新版本说明并推送 `origin/main`；发布基线提交 `885c616`。
+
+## 2026-11-21
+
+- [x] 复现用户反馈的 `Start Frame` tooltip 缺失；`manager/dopnet` 与 `obj/dopnet` 均包含正确中文内容。
+- [x] 用 `houdinihelp.api.getParmTooltipFromPath()` 验证文件和运行中 Houdini 都返回正确 DOP Network tooltip。
+- [x] 根因：Houdini 运行期间热替换 `help/nodes`，UI 帮助缓存保留了安装时的失败状态。
+- [x] 清空运行中 Houdini 的 help `PageCache`，验证重新读取后内容正确。
+- [x] 安装器增加运行进程检测，Houdini 未关闭时拒绝安装。
+- [x] README 明确要求安装前完全关闭 Houdini。
+- [x] 回归测试：48 passed。
