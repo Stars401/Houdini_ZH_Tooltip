@@ -56,10 +56,12 @@ def build_pack(
     legacy_zip: Path,
     output_zip: Path,
     work_dir: Path,
-    network_translator: Callable[[list[str]], list[str]] = translate_labels,
+    network_translator: Callable[[list[str]], list[str]] | None = None,
     cache_path: Path | None = None,
     glossary_path: Path | None = None,
 ) -> BuildStats:
+    if network_translator is None:
+        network_translator = translate_labels
     glossary = _load_glossary(glossary_path or Path("data/glossary_zh.json"))
     actual_cache = cache_path or work_dir / "translation_cache.json"
 
