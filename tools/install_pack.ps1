@@ -26,6 +26,13 @@ function Assert-PathWithin {
     }
 }
 
+function Assert-HoudiniNotRunning {
+    $running = @(Get-Process -Name houdini -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) {
+        throw "Houdini is running. Close all Houdini windows before installing the help pack."
+    }
+}
+
 function Restore-HelpNodes {
     param(
         [Parameter(Mandatory = $true)]
@@ -60,6 +67,7 @@ $installStarted = $false
 Assert-PathWithin -Path $nodesPath -Root $destination
 Assert-PathWithin -Path $backupNodes -Root $destination
 Assert-PathWithin -Path $stagingRoot -Root $destination
+Assert-HoudiniNotRunning
 
 try {
     Add-Type -AssemblyName System.IO.Compression.FileSystem

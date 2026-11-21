@@ -27,12 +27,13 @@ Provides the sources for the Pyro simulation. This should be a set of named volu
 
 手动安装：
 
-1. 解压 `Houdini_ZH_Tooltip_Pack.zip`
-2. 将压缩包内的 `help` 目录合并到用户偏好目录
+1. 完全关闭 Houdini
+2. 解压 `Houdini_ZH_Tooltip_Pack.zip`
+3. 将压缩包内的 `help` 目录合并到用户偏好目录
    - Windows: `%USERPROFILE%\Documents\houdini22.0\`
    - Linux: `~/houdini22.0/`
    - macOS: `~/Library/Preferences/houdini/22.0/`
-3. 重启 Houdini
+4. 重新启动 Houdini
 
 Windows 推荐使用带备份和回滚的安装脚本：
 
@@ -43,6 +44,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tools/install_pack.ps1 `
 ```
 
 脚本会先把现有 `help\nodes` 移动到带时间戳的 `backups` 目录，再安装并校验 5,034 个文件。
+脚本检测到 Houdini 正在运行时会直接拒绝安装，避免帮助缓存保留“找不到帮助”的旧状态。
 
 ### 卸载与恢复
 
@@ -130,9 +132,10 @@ Adds Chinese summaries to parameter, input, output, and local-variable tooltips 
 
 ### Installation
 
-1. Extract `Houdini_ZH_Tooltip_Pack.zip`
-2. Merge its `help` directory into your Houdini user preferences directory
-3. Restart Houdini
+1. Close Houdini completely
+2. Extract `Houdini_ZH_Tooltip_Pack.zip`
+3. Merge its `help` directory into your Houdini user preferences directory
+4. Start Houdini again
 
 On Windows, use the safe installer:
 
